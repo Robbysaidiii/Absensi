@@ -11,7 +11,7 @@ def connect_to_database():
     return mysql.connector.connect(
         host="localhost",  # Ganti dengan alamat host jika berbeda
         user="root",       # Ganti dengan username yang sesuai
-        password="04207027",  # Ganti dengan password yang benar
+        password="",  # Ganti dengan password yang benar
         database="facebase"   # Ganti dengan nama database yang sesuai
     )
 
