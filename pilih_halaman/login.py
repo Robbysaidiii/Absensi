@@ -5,7 +5,15 @@ import pandas as pd
 from datetime import datetime
 from FaceBase import verify_user, save_attendance, show_login, connect_to_database
 from HOG import compute_hog_features
-
+import mysql.connector
+def connect_to_database():
+     return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="facebase"
+         
+             )
 def show_user_attendance():
     """
     Menampilkan riwayat absensi untuk pengguna berdasarkan ID dalam bentuk DataFrame.

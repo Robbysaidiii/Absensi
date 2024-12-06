@@ -2,7 +2,15 @@ import streamlit as st
 import streamlit as st
 from pilih_halaman.login import show_user_attendance, fetch_all_users
 from bokeh.plotting import figure
-
+import mysql.connector
+def connect_to_database():
+     return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="facebase"
+         
+             )
 def process_class():
     st.title("Proses Kelas")
 
