@@ -2,15 +2,6 @@ import streamlit as st
 from pilih_halaman.login import show_user_attendance, fetch_all_users
 import pandas as pd
 import plotly.express as px
-import mysql.connector
-def connect_to_database():
-     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="facebase"
-         
-             )
 
 def proces_class():
     st.title("Proses Kelas")
