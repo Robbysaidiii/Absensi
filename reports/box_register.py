@@ -1,6 +1,7 @@
 import streamlit as st
 from pilih_halaman.login import show_user_attendance, fetch_all_users
 import pandas as pd
+import mysql.connector
 import plotly.express as px
 
 def proces_class():

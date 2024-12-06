@@ -1,6 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
+import mysql.connector
 import pandas as pd
 from datetime import datetime
 from FaceBase import verify_user, save_attendance, show_login, connect_to_database
