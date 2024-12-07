@@ -9,10 +9,10 @@ from HOG import compute_hog_features
 # Fungsi untuk menghubungkan ke database MySQL
 def connect_to_database():
     return mysql.connector.connect(
-        host="127.0.0.1",  # Ganti dengan alamat host jika berbeda
-        user="root",       # Ganti dengan username yang sesuai
-        password="",  # Ganti dengan password yang benar
-        database="facebase"   # Ganti dengan nama database yang sesuai
+        host="localhost", 
+        user="root",       
+        password="",  
+        database="facebase"   
     )
 
 def fetch_attendance_data(selected_class):
