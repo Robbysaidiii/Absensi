@@ -7,7 +7,9 @@ from skimage import feature
 def compute_hog_features(image):
     # Mengonversi gambar ke grayscale
     image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    image_resized = cv2.resize(image_gray, (128, 64))  # Resize gambar untuk HOG
+    # Resize gambar untuk HOG
+    image_resized = cv2.resize(image_gray, (128, 64))
+    # Menghitung fitur HOG
     hog_features = feature.hog(image_resized, 
                                 orientations=9, 
                                 pixels_per_cell=(8, 8), 
@@ -25,6 +27,9 @@ def prepare_training_data(folder_path):
             if image is not None:
                 features = compute_hog_features(image)
                 X.append(features)
-                label = filename.split('_')[0]  # Mengambil label dari nama file
+                # Mengambil label dari nama file (misal person_01.jpg => label person)
+                label = filename.split('_')[0]
                 y.append(label)
+            else:
+                print(f"Warning: Gagal memuat gambar {filename}")
     return np.array(X), np.array(y)

@@ -1,125 +1,136 @@
+
 import streamlit as st
 import cv2
 import numpy as np
-import mysql.connector
 import pandas as pd
 from datetime import datetime
-from FaceBase import verify_user, save_attendance, show_login, connect_to_database
+import mysql.connector
+from FaceBase import connect_to_database
 from HOG import compute_hog_features
+from pilih_halaman.Daftar import verify_user
 
 def show_user_attendance():
     """
-    Menampilkan riwayat absensi untuk pengguna berdasarkan ID dalam bentuk DataFrame.
+    Menampilkan daftar absensi pengguna.
     """
-    conn = connect_to_database()
-    cursor = conn.cursor(dictionary=True)
-    query ="SELECT attendance_id AS attendance_id ,user_id AS user_id,waktu AS waktu,Status AS Status,Alasan_Ketidakhadiran AS Alasan_Ketidakhadiran FROM attendance"
-    cursor.execute(query)
-    results = cursor.fetchall()
-    conn.close()
-    
-    # Konversi hasil query ke DataFrame
-    if results:
-        return pd.DataFrame(results)
-    else:
-        return pd.DataFrame(columns=["attendance_id", "user_id", "waktu", "Status", "Kuliah","Alasan_Ketidakhadiran"])
+    pass
 
 def fetch_all_users():
     """
-    Mengambil semua data pengguna dari tabel `user` dan data absensi terkait.
+    Mengambil semua data pengguna dari tabel `user` dan absensi terakhir mereka.
     """
     conn = connect_to_database()
     cursor = conn.cursor(dictionary=True)
-    
-    # Query untuk mengambil data pengguna dengan data absensi terakhir
     query = """
         SELECT 
             u.id AS ID, 
             u.nama AS Nama, 
-            u.umur AS Umur, 
-            u.alamat AS Alamat, 
-            u.kuliah AS Kuliah,
             a.waktu AS Waktu, 
             a.status AS Status, 
-            a. Alasan_Ketidakhadiran AS Alasan_Ketidakhadiran
+            a.alasan_ketidakhadiran AS Alasan
         FROM user u
-        LEFT JOIN (
-            SELECT user_id, MAX(waktu) AS waktu, status, Alasan_Ketidakhadiran
-            FROM attendance 
-            GROUP BY user_id
-        ) a ON u.id = a.user_id
+        LEFT JOIN atendance a 
+        ON a.waktu = (
+            SELECT MAX(waktu) 
+            FROM atendance 
+            WHERE user_id = u.id
+        ) AND a.user_id = u.id
     """
     cursor.execute(query)
     results = cursor.fetchall()
     conn.close()
-    
-    # Konversi hasil query ke DataFrame
     if results:
         return pd.DataFrame(results)
     else:
-        return pd.DataFrame(columns=["ID", "Nama", "Umur", "Alamat", "Kuliah", "Waktu", "Status", "Alasan_Ketidakhadiran"])
+        return pd.DataFrame(columns=["ID", "Nama", "Waktu", "Status", "Alasan"])
 
-# Fungsi utama untuk absensi
+def validate_user(user_id, user_name):
+    """
+    Validasi apakah ID dan Nama cocok dalam tabel `user`.
+    """
+    conn = connect_to_database()
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM user WHERE id = %s AND nama = %s"
+    cursor.execute(query, (user_id, user_name))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+def save_attendance(user_id, status, reason):
+    """
+    Simpan data absensi ke dalam tabel `atendance`.
+    """
+    conn = connect_to_database()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO atendance (user_id, waktu, status, alasan_ketidakhadiran) VALUES (%s, %s, %s, %s)",
+            (user_id, datetime.now(), status, reason if reason else None)
+        )
+        conn.commit()
+        st.success("Data absensi berhasil disimpan.")
+    except mysql.connector.Error as err:
+        st.error(f"Gagal menyimpan absensi: {err}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
 def attendance_page():
+    """
+    Halaman utama untuk absensi.
+    """
     st.title("Halaman Absensi")
 
-    # Pilihan kelas
-    selected_class = st.selectbox(
-        "Pilih Kelas",
-        ["K1 Awanpintar", "K2 Sapiens", "K3 Cosmic", "K4 Apollo", "K5 Photon", "K6 Turing"]
-    )
-    st.write(f"**Kelas yang dipilih:** {selected_class}")
-
-    # Input untuk ID, Nama, dan Keterangan
+    # Input data pengguna
     st.subheader("Masukkan Data Anda")
     user_id = st.text_input("ID")
     user_name = st.text_input("Nama")
     user_note = st.text_area("Keterangan (Opsional)")
 
-    # Jika data sudah diisi, perintahkan untuk verifikasi wajah
     if st.button("Lanjutkan Verifikasi Wajah"):
         if not user_id or not user_name:
             st.warning("Harap isi ID dan Nama terlebih dahulu.")
         else:
-            st.write("Gunakan kamera untuk verifikasi wajah.")
-            picture = st.camera_input("Ambil Foto untuk Verifikasi")
-            if picture:
-                # Proses verifikasi wajah
-                image_bytes = picture.getvalue()
-                frame = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-                hog_features = compute_hog_features(frame)
-                user_info = verify_user(hog_features)
-
-                if user_info != "unknown_person":
-                    st.success(f"Wajah {user_name} berhasil diverifikasi!")
+            # Validasi ID dan Nama
+            user_info = validate_user(user_id, user_name)
+            if user_info:
+                st.write("Gunakan kamera untuk mengambil foto wajah.")
+                picture = st.camera_input("Ambil Foto untuk Verifikasi")
+                if picture:
+                    # Decode gambar dari input kamera
+                    image_bytes = picture.getvalue()
+                    frame = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
                     
-                    # Simpan absensi ke database
-                    current_time = datetime.now().strftime("%H:%M:%S")
-                    save_attendance(user_id, "Hadir", user_note)
+                    # Ekstraksi fitur HOG dari gambar
+                    hog_features = compute_hog_features(frame)
                     
-                    st.write(f"Absensi Anda berhasil dicatat:")
-                    st.write(f"- **Nama:** {user_name}")
-                    st.write(f"- **ID:** {user_id}")
-                    st.write(f"- **Keterangan:** {user_note or 'Tidak ada'}")
-                    st.write(f"- **Jam Kehadiran:** {current_time}")
-                else:
-                    st.error("Verifikasi wajah gagal! Pastikan wajah Anda jelas di kamera.")
+                    # Verifikasi wajah dengan data yang ada
+                    verification_result = verify_user(hog_features)
 
-    # Tampilkan semua data pengguna dalam DataFrame
-    st.subheader("Data Pengguna Terdaftar")
-    
-    users_df = fetch_all_users()
-    if users_df.empty:
-        st.write("Belum ada data pengguna yang terdaftar.")
-    else:
-        st.dataframe(users_df)
+                    if verification_result == user_info['id']:
+                        st.success(f"Verifikasi wajah berhasil untuk {user_name}!")
 
-    st.subheader("DATA KEHADIRAN")
-    usersdf = show_user_attendance()
-    if usersdf.empty:
-        st.write("BELOM ADA DATA ABSEN YANG DIINPUT")
+                        # Tombol untuk menyimpan absensi setelah verifikasi wajah
+                        if st.button("Absen"):
+                            # Simpan absensi ke database
+                            with st.spinner("Menyimpan data absensi..."):
+                                save_attendance(user_id, "Hadir", user_note)
+                            st.success(f"Absensi berhasil dicatat:\n- **Nama:** {user_name}\n- **ID:** {user_id}")
+                            # Refresh tabel setelah absen
+                            st.experimental_rerun()
+                    else:
+                        st.error("Verifikasi wajah gagal! Pastikan wajah Anda terlihat jelas.")
+            else:
+                st.error("ID dan Nama tidak ditemukan! Silakan lakukan pendaftaran terlebih dahulu.")
+
+# Tampilkan semua pengguna dan absensi terakhir
+    st.subheader("Daftar Pengguna dan Riwayat Absensi Terakhir")
+    user_data = fetch_all_users()
+    if not user_data.empty:
+        # Tabel dengan lebar container penuh dan tinggi yang dapat disesuaikan
+        st.dataframe(user_data, use_container_width=True, height=600)
     else:
-        st.dataframe(usersdf)
-# Jalankan fungsi halaman absensi
+        st.write("Tidak ada data pengguna yang ditemukan.")
 if __name__ == "__main__":
     attendance_page()

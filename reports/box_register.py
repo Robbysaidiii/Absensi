@@ -1,74 +1,49 @@
 import streamlit as st
-from pilih_halaman.login import show_user_attendance, fetch_all_users
 import pandas as pd
-import mysql.connector
 import plotly.express as px
+from pilih_halaman.login import fetch_all_users
+from pilih_halaman.Daftar import display_users
 
 def proces_class():
     st.title("Proses Kelas")
 
-    # Pilihan untuk menampilkan data absensi
-    option = st.selectbox(
-        "Tampilkan Data Attendance",
-        ["Pilih Data", "Data Frame dari show_user_attendance"],
-        key="selectbox_options"
-    )
+    # Tampilkan data absensi yang sudah terdaftar
+    st.subheader("Data Kehadiran")
     
-    if option == "Data Frame dari show_user_attendance":
-        attendance_df = show_user_attendance()
-        if attendance_df.empty:
-            st.write("Tidak ada riwayat absensi yang tercatat.")
-        else:
-            st.subheader("Data Attendance")
-            st.dataframe(attendance_df, use_container_width=True)
-
-    # Pilihan untuk menampilkan data pengguna
-    option_2 = st.selectbox(
-        "Tampilkan Data Pengguna",
-        ["Pilih Data", "Data Frame dari fetch_all_users"],
-        key="selectbox_options_2"
-    )
+    # Mengambil data dari fungsi fetch_all_users()
+    attendance_df = fetch_all_users()  # Mengambil data untuk digunakan lebih lanjut
     
-    if option_2 == "Data Frame dari fetch_all_users":
-        users_df = fetch_all_users()
-        if users_df.empty:
-            st.write("Belum ada data pengguna yang terdaftar.")
-        else:
-            st.subheader("Data Pengguna Terdaftar")
-            st.dataframe(users_df, use_container_width=True)
-
-    # Menampilkan grafik kehadiran
-    st.subheader("Grafik Kehadiran Berdasarkan Status dan Alasan")
-    attendance_df = show_user_attendance()
-    if not attendance_df.empty and "Status" in attendance_df.columns:
-        # Grafik Kehadiran vs Ketidakhadiran
-        status_summary = attendance_df["Status"].value_counts().reset_index()
-        status_summary.columns = ["Status", "Jumlah"]
-        
-        fig_status = px.bar(
-            status_summary, 
-            x="Status", 
-            y="Jumlah", 
-            color="Status",
-            title="Jumlah Kehadiran Berdasarkan Status",
-            labels={"Status": "Status Kehadiran", "Jumlah": "Jumlah Orang"},
-        )
-        st.plotly_chart(fig_status, use_container_width=True)
-
-        # Grafik Alasan Ketidakhadiran
-        if "Alasan_Ketidakhadiran" in attendance_df.columns:
-            reason_summary = attendance_df["Alasan_Ketidakhadiran"].value_counts().reset_index()
-            reason_summary.columns = ["Alasan", "Jumlah"]
-
-            fig_reason = px.pie(
-                reason_summary, 
-                values="Jumlah", 
-                names="Alasan", 
-                title="Distribusi Alasan Ketidakhadiran",
-            )
-            st.plotly_chart(fig_reason, use_container_width=True)
+    if attendance_df.empty:
+        st.write("Tidak ada data absensi yang tercatat.")
     else:
-        st.write("Data Kehadiran Tidak Memiliki Informasi Status atau Alasan.")
+        st.dataframe(attendance_df, use_container_width=True)
+
+        # Grafik Distribusi Kehadiran dan Ketidakhadiran
+        st.subheader("Grafik Distribusi Kehadiran dan Ketidakhadiran")
+
+        # Gabungkan Status dan Alasan
+        if "Status" in attendance_df.columns and "Alasan" in attendance_df.columns:
+            # Isi NaN pada alasan dengan 'Tidak Ada Alasan'
+            attendance_df["Alasan"] = attendance_df["Alasan"].fillna("Tidak Ada Alasan")
+            
+            # Gabungkan Status dan Alasan
+            attendance_df["Status_Alasan"] = attendance_df["Status"] + " - " + attendance_df["Alasan"]
+
+            # Hitung distribusi gabungan
+            combined_summary = attendance_df["Status_Alasan"].value_counts().reset_index()
+            combined_summary.columns = ["Status_Alasan", "Jumlah"]
+
+            # Buat pie chart gabungan
+            fig_combined = px.pie(
+                combined_summary,
+                values="Jumlah",
+                names="Status_Alasan",
+                title="Distribusi Status Kehadiran dan Alasan Ketidakhadiran",
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            st.plotly_chart(fig_combined, use_container_width=True)
+        else:
+            st.write("Data Status atau Alasan tidak ditemukan atau kosong.")
 
 if __name__ == "__main__":
     proces_class()
