@@ -9,9 +9,10 @@ from HOG import compute_hog_features
 # Fungsi untuk menghubungkan ke database MySQL
 def connect_to_database():
     return mysql.connector.connect(
-        host="localhost", 
+         host="127.0.0.1",  # atau IP server MySQL
+        port=3306,
         user="root",       
-        password="",  
+        password="04207027",  
         database="facebase"   
     )
 
