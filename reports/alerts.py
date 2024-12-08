@@ -1,6 +1,6 @@
 import streamlit as st
 import mysql.connector
-from pilih_halaman.login import fetch_all_users
+from pilih_halaman.login import show_user_attendance, fetch_all_users
 from bokeh.plotting import figure
 
 def process_class():
