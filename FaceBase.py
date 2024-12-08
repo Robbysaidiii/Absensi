@@ -7,7 +7,7 @@ from datetime import datetime
 def connect_to_database():
     try:
         conn = mysql.connector.connect(
-            host="robbysaidi-1.tail78c0a6.ts.net",  # Hostname atau IP server MySQL
+            host="100.110.248.65",  # Hostname atau IP server MySQL
             port=3306,                           # Port MySQL
             user="root",                         # Username MySQL
             password="04207027",                 # Password MySQL
