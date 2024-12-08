@@ -11,7 +11,8 @@ def connect_to_database():
             port=3306,                           # Port MySQL
             user="root",                         # Username MySQL
             password="04207027",                 # Password MySQL
-            database="facebase"                  # Nama database MySQL
+            database="facebase"    
+            ssl_disabled=False              # Nama database MySQL
         )
         if conn.is_connected():
             st.success("Berhasil terhubung ke database!")

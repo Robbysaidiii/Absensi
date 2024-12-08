@@ -1,5 +1,6 @@
 import streamlit as st
 import mysql.connector
+from FaceBase import connect_to_database
 from pilih_halaman.login import show_user_attendance, fetch_all_users
 from bokeh.plotting import figure
 
